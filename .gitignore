@@ -1,6 +1,9 @@
 # SVN files
 .svn*
 
+# Zone Identifier
+*Zone.Identifier*
+
 # EMACS temp files
 *~
 
