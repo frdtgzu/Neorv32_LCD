@@ -19,7 +19,6 @@ library surf;
 use surf.StdRtlPkg.all;
 use surf.AxiStreamPkg.all;
 use surf.AxiLitePkg.all;
-use surf.SsiPkg.all;
 
 library work;
 use work.AppPkg.all;
@@ -41,8 +40,8 @@ end Application;
 
 architecture mapping of Application is
 
-   constant RING_INDEX_C       : natural := 0;
-   constant DAC_SIG_INDEX_C    : natural := 1;
+   constant LCD_INDEX_C       : natural := 0;
+   constant REGISTERS_INDEX_C    : natural := 1;
    constant NUM_AXIL_MASTERS_C : natural := 2;
 
    constant AXIL_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUM_AXIL_MASTERS_C-1 downto 0) := genAxiLiteConfig(NUM_AXIL_MASTERS_C, AXIL_BASE_ADDR_G, 28, 24);
@@ -51,6 +50,7 @@ architecture mapping of Application is
    signal axilReadSlaves   : AxiLiteReadSlaveArray(NUM_AXIL_MASTERS_C-1 downto 0)  := (others => AXI_LITE_READ_SLAVE_EMPTY_DECERR_C);
    signal axilWriteMasters : AxiLiteWriteMasterArray(NUM_AXIL_MASTERS_C-1 downto 0);
    signal axilWriteSlaves  : AxiLiteWriteSlaveArray(NUM_AXIL_MASTERS_C-1 downto 0) := (others => AXI_LITE_WRITE_SLAVE_EMPTY_DECERR_C);
+
 
 
 begin
@@ -71,15 +71,16 @@ begin
          mAxiWriteMasters    => axilWriteMasters,
          mAxiWriteSlaves     => axilWriteSlaves,
          mAxiReadMasters     => axilReadMasters,
-         mAxiReadSlaves      => axilReadSlaves);
+         mAxiReadSlaves      => axilReadSlaves
+         );
          
-   U_LCD : entity work.LCD_Driver_Main
+   U_LCD : entity work.LcdDriverTop
       generic map(
          TPD_G => TPD_G
       )
       port map(
-         clk_i => clock,
-         rst_i => rst,
+         clk_i => axilClk,
+         rst_i => axilRst,
          busyLCD => busyLCDsig,
          dataLCD_o => LCD_io,
          data_i => data,

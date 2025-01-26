@@ -14,7 +14,7 @@ entity Neorv32Demo is
      rstn_i      : in std_logic;                         --reset
      dataLCD_io  : inout std_logic_vector(7 downto 0);   --podatki na LCD data vodilu , najvišja linija nosi        
                                                          --informacije o LCDbusy flag-u, mora biti tipa inout
-     clk_in      : in std_logic;                         --1MHz ura
+     clk_in      : in std_logic;                         
      busy_o      : out std_logic;                        --kontrolni signal -> kdaj driver lahko zapiše nove podatke na LCD: 0->pripravljen, 1->ne
      RW_o        : out std_logic;                        --r/w za LCD -- 0 pisanje na LCD, 1 branje iz LCD
      RS_o        : out std_logic;                        --register select 0-> instruction 1-> data
@@ -79,10 +79,10 @@ begin
          -- Application AXI-Lite Interfaces [0x80000000:0xFFFFFFFF]
          clk_i             => axilClk,
          rst_i             => axilRst,
-         axilReadMaster_o   => axilReadMaster,
-         axilReadSlave_i    => axilReadSlave,
-         axilWriteMaster_o  => axilWriteMaster,
-         axilWriteSlave_i   => axilWriteSlave
+         axilReadMaster_o  => axilReadMaster,
+         axilReadSlave_i   => axilReadSlave,
+         axilWriteMaster_o => axilWriteMaster,
+         axilWriteSlave_i  => axilWriteSlave
       );
 
    --------------

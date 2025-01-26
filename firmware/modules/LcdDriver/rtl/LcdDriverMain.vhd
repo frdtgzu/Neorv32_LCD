@@ -3,7 +3,7 @@
 -- 
 -- Create Date: 14.07.2024 08:46:25
 -- Design Name: 
--- Module Name: LCD_Driver_Main - Behavioral
+-- Module Name: LcdDriverMain - Behavioral
 -- Project Name: LCD_Driver
 -- Target Devices: arty a7-100T
 -- Tool Versions: vivado 2024.2
@@ -18,12 +18,11 @@
 ----------------------------------------------------------------------------------
 
 
-library IEEE;
-use IEEE.STD_LOGIC_1164.ALL;
-use IEEE.STD_LOGIC_UNSIGNED.ALL;
-use IEEE.NUMERIC_STD.ALL;
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
 
-entity LCD_Driver_Main is
+entity LcdDriverMain is
    generic(
        TPD_G: time := 1ns
    );
@@ -42,10 +41,10 @@ entity LCD_Driver_Main is
             led_o:           out     std_logic_vector(11 downto 0)          -- testni signali za dolo�itev stanja            
         );
         
-end LCD_Driver_Main;
+end LcdDriverMain;
 
 
-architecture Behavioral of LCD_Driver_Main is
+architecture Behavioral of LcdDriverMain is
 
     constant functionSetFunction :     STD_LOGIC_VECTOR(7 downto 0)  := X"3C";  -- Function set komanda za LCD bus inicializacijo (set_function state)
     constant displaySetFunction :      STD_LOGIC_VECTOR(7 downto 0)  := X"0C";  -- Display set komanda za LCD display inicializacijo
