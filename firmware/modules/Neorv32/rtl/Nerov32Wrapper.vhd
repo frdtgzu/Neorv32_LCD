@@ -7,6 +7,9 @@ use surf.StdRtlPkg.all;
 use surf.AxiLitePkg.all;
 
 entity Neorv32Wrapper is
+   generic(
+      TPD_G : time := 1ns
+   );
    port (
       clk_i             : in sl;
       rst_i             : in sl;

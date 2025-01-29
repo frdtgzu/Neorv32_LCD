@@ -22,33 +22,39 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
+library surf;
+use surf.StdRtlPkg.all;
+use surf.AxiLitePkg.all;
+
+
 entity LcdDriverMain is
    generic(
-       TPD_G: time := 1ns
+      TPD_G: time := 1ns
    );
-
-   Port (   rst_i:           in      std_logic;                             --reset
-            busyLCD:         in      std_logic;                             --podatki na LCD data vodilu         najvi�ja linija nosi informacije o LCDbusy flag-u, mora biti tipa inout
-            dataLCD_o :      out     std_logic_vector(7 downto 0);
-            data_i:          in      std_logic_vector(7 downto 0);          --podatki iz registrov
-            clk_i:           in      std_logic;                             --1MHz ura
-            busy_o:          out     std_logic;                             --kontrolni signal -> kdaj driver lahko zapi�e nove podatke na LCD: 0->pripravljen, 1->ne
-            dAdress_o:       out     std_logic_vector(4 downto 0);          --naslovni prostor za pomnilnik, iz kjer beremo podatke
-            RW_o:            out     std_logic;                             --r/w za LCD -- 0 pisanje na LCD, 1 branje iz LCD
-            RS_o:            out     std_logic;                             --register select 0-> instruction 1-> data
-            E_o:             out     std_logic;                             --write enable za lcd (1->read,fallign_edge 0 -> write)
-            start_i:         in      std_logic;                              --pulz iz CPU, signalni bit za za�etek pisanja
-            led_o:           out     std_logic_vector(11 downto 0)          -- testni signali za dolo�itev stanja            
-        );
+   Port(
+      rst_i     : in  sl;                --! reset
+      busyLCD   : in  sl;                --! podatki na LCD data vodilu najvisja linija nosi 
+                                         --! informacije o LCDbusy flag-u, mora biti tipa inout
+      dataLCD_o : out slv(7 downto 0);   
+      data_i    : in  slv(7 downto 0);   --! podatki iz registrov
+      clk_i     : in  sl;                --! 1MHz ura
+      busy_o    : out sl;                --! kontrolni signal -> kdaj driver lahko zapise nove podatke na LCD: 0->pripravljen, 1->ne
+      dAdress_o : out slv(4 downto 0);   --! naslovni prostor za pomnilnik, iz kjer beremo podatke
+      RW_o      : out sl;                --! r/w za LCD -- 0 pisanje na LCD, 1 branje iz LCD
+      RS_o      : out sl;                --! register select 0-> instruction 1-> data
+      E_o       : out sl;                --! write enable za lcd (1->read,fallign_edge 0 -> write)
+      start_i   : in  sl;                --! signalni bit za zacetek izpisa
+      led_o     : out slv(11 downto 0)   --! testni signali za dolocitev stanja            
+   );
         
 end LcdDriverMain;
 
 
 architecture Behavioral of LcdDriverMain is
 
-    constant functionSetFunction :     STD_LOGIC_VECTOR(7 downto 0)  := X"3C";  -- Function set komanda za LCD bus inicializacijo (set_function state)
-    constant displaySetFunction :      STD_LOGIC_VECTOR(7 downto 0)  := X"0C";  -- Display set komanda za LCD display inicializacijo
-    constant displayClearFunction :    STD_LOGIC_VECTOR(7 downto 0)  := X"01";  -- Display clear komanda pred pisanjem na LCD
+    constant FUNCTION_SET_C  :  slv(7 downto 0)  := X"3C";  --! Function set komanda za LCD bus inicializacijo (set_function state)
+    constant DISPLAY_SET_C   :  slv(7 downto 0)  := X"0C";  --! Display set komanda za LCD display inicializacijo
+    constant DISPLAY_CLEAT_C :  slv(7 downto 0)  := X"01";  --! Display clear komanda pred pisanjem na LCD
 
     type LCD_ADDR_T is array(31 downto 0) of std_logic_vector(7 downto 0);
 
@@ -141,7 +147,7 @@ architecture Behavioral of LcdDriverMain is
 --!   Synchronous output out of registers
    signal rin : recordType := RECORDTYPE_INIT_C;
    
-   --!  Testni signal za dolo�itev stanja
+   --!  Testni signal za dolocitev stanja
    signal led: std_logic_vector(11 downto 0):= (others => '0');
 
 
@@ -185,7 +191,7 @@ begin
 ----------------------------------------------------------------------------              
       when SETFUNCT_S =>
          led(1) <= '1';     
-         v.data := functionSetFunction;
+         v.data := FUNCTION_SET_C;
          v.RS := '0';
          if(r.count(0) = '1') then
             v.enable := '0';
@@ -202,7 +208,7 @@ begin
 ----------------------------------------------------------------------------           
       when SETDISPLAY_S =>
          led(3) <= '1';
-         v.data := displaySetFunction;
+         v.data := DISPLAY_SET_C;
          v.RS := '0';
          if(r.count(0) = '1') then
             v.enable := '0';
@@ -219,7 +225,7 @@ begin
  ----------------------------------------------------------------------------          
       when DISPLAYCLEAR_S =>
          led(5) <= '1';
-         v.data := displayClearFunction;
+         v.data := DISPLAY_CLEAT_C;
          v.RS := '0';
          if(r.count(0) = '1') then
             v.enable := '0';
@@ -253,7 +259,7 @@ begin
          if(r.LCDbusy = '0' and r.RW = '1') then
             v.RW := '0';
             v.RS := '0';
-            v.data := displayClearFunction;
+            v.data := DISPLAY_CLEAT_C;
          end if;
          if(r.RW = '0') then
             v.enable := '0';
@@ -345,7 +351,7 @@ begin
 p_sinh: process(clk_i)
    begin
       if(rising_edge(clk_i)) then
-         r <= rin after TPROP;
+         r <= rin after TPD_G;
       end if;
    end process p_sinh;
 

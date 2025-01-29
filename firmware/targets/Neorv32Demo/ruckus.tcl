@@ -7,6 +7,7 @@ loadRuckusTcl $::env(TOP_DIR)/shared
 # Load module ruckus.tcl files
 loadRuckusTcl $::env(TOP_DIR)/modules/LcdDriver
 loadRuckusTcl $::env(TOP_DIR)/modules/Neorv32 
+loadRuckusTcl $::env(TOP_DIR)/modules/Registers
 
 # Load custom IP libraries
 set_property ip_repo_paths $::env(MODULES)/customIpLib [current_project]

@@ -3,7 +3,6 @@ use ieee.std_logic_1164.all;
 
 library surf;
 use surf.StdRtlPkg.all;
-use surf.AxiStreamPkg.all;
 use surf.AxiLitePkg.all;
 
 entity Neorv32Demo is
@@ -11,19 +10,24 @@ entity Neorv32Demo is
       TPD_G        : time := 1 ns
       );
    port (
-     rstn_i      : in std_logic;                         --reset
-     dataLCD_io  : inout std_logic_vector(7 downto 0);   --podatki na LCD data vodilu , najvišja linija nosi        
-                                                         --informacije o LCDbusy flag-u, mora biti tipa inout
-     clk_in      : in std_logic;                         
-     busy_o      : out std_logic;                        --kontrolni signal -> kdaj driver lahko zapiše nove podatke na LCD: 0->pripravljen, 1->ne
-     RW_o        : out std_logic;                        --r/w za LCD -- 0 pisanje na LCD, 1 branje iz LCD
-     RS_o        : out std_logic;                        --register select 0-> instruction 1-> data
-     E_o         : out std_logic;                        --write enable za lcd (1->read,fallign_edge 0 -> write)
-     start_i     : in std_logic;                         --pulz iz CPU, signalni bit za začetek pisanja
-     led_o       : out std_logic_vector(11 downto 0);    
-     gpio_o      : out std_logic;
-     uart0_rxd_i : in std_logic;
-     uart0_txd_o : out std_logic  
+
+      --! Clk and reset
+      rstn_i      : in std_logic;                         
+      clk_i       : in std_logic;
+
+      --! Lcd IO   
+      dataLCD_io  : inout std_logic_vector(7 downto 0);  
+      busy_o      : out std_logic;                       
+      RW_o        : out std_logic;                      
+      RS_o        : out std_logic;                        
+      E_o         : out std_logic;                       
+      btnStart_i  : in std_logic;                         
+      led_o       : out std_logic_vector(11 downto 0);    
+      gpio_o      : out std_logic;
+
+      --! Uart
+      uart0_rxd_i : in std_logic;
+      uart0_txd_o : out std_logic  
    );
 end Neorv32Demo;
 
@@ -35,8 +39,12 @@ architecture top_level of Neorv32Demo is
    signal axilWriteSlave  : AxiLiteWriteSlaveType;
    signal axilReadMaster  : AxiLiteReadMasterType;
    signal axilReadSlave   : AxiLiteReadSlaveType;
+   
+   signal gpo : slv(7 downto 0) := (others => '0');
 
 begin
+
+   gpio_o <= gpo(0);
 
    ------------------------------
    -- User's AXI-Lite Clock/Reset
@@ -50,17 +58,19 @@ begin
          RST_IN_POLARITY_G => '0',
          NUM_CLOCKS_G      => 1,
          -- MMCM attributes
-         CLKIN_PERIOD_G    => 100,   -- 100 MHz
+         CLKIN_PERIOD_G    => 10.0,  -- 100 MHz
          CLKFBOUT_MULT_G   => 10,    -- 1.0GHz = 10 x 100 MHz
-         CLKOUT0_DIVIDE_G  => 10)    -- 100MHz = 1.0GHz/10
+         CLKOUT0_DIVIDE_G  => 10     -- 100MHz = 1.0GHz/10
+         )   
       port map(
          -- Clock Input
-         clkIn     => clk_in,
+         clkIn     => clk_i,
          rstIn     => rstn_i,
          -- Clock Outputs
          clkOut(0) => axilClk,
          -- Reset Outputs
-         rstOut(0) => axilRst);
+         rstOut(0) => axilRst
+         );
 
    -----------------------
    -- Common Platform Core
@@ -72,7 +82,7 @@ begin
       )
       port map (
          -- Neorv32 interface ports
-         gpio_o      => gpio_o,
+         gpio_o      => gpo,
          uart0_rxd_i => uart0_rxd_i,
          uart0_txd_o => uart0_txd_o,
 
@@ -101,7 +111,17 @@ begin
          axilWriteMaster => axilWriteMaster,
          axilWriteSlave  => axilWriteSlave,
          axilReadMaster  => axilReadMaster,
-         axilReadSlave   => axilReadSlave
+         axilReadSlave   => axilReadSlave,
+
+         --! Lcd signals
+         useBtnStart => useBtnStart,
+         busy_o      => busy_o,
+         RW_o        => RW,
+         RS_o        => RS_o,
+         E_o         => E_o,
+         start_i     => btnStart_i,
+         led_o       => led_o
+
       );
 
 end top_level;

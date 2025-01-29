@@ -3,13 +3,25 @@ use ieee.std_logic_1164.all;
 
 library surf;
 use surf.StdRtlPkg.all;
-use surf.AxiStreamPkg.all;
-use surf.AxiLitePkg.all;
 
 package LcdPkg is
     
-   record LcdStat
-
+   type LcdStatType is record
+      start : sl;
+   end record LcdStatType;
+      
+   constant LCD_STAT_INIT_C : LcdStatType := (
+      start => '0'
+   );
+   
+   type LcdCtrlType is record
+      
+   end record LcdCtrlType;
+   
+   constant LCD_CTRL_INIT_C : LcdCtrlType := (
+      
+   );   
+   
     
 end package LcdPkg;
 

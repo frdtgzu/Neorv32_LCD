@@ -17,7 +17,6 @@ use ieee.std_logic_1164.all;
 
 library surf;
 use surf.StdRtlPkg.all;
-use surf.AxiStreamPkg.all;
 use surf.AxiLitePkg.all;
 
 library work;
@@ -27,7 +26,7 @@ entity Application is
    generic (
       TPD_G            : time := 1 ns;
       AXIL_BASE_ADDR_G : slv(31 downto 0)
-      );
+   );
    port (
       -- AXI-Lite Interface (axilClk domain)
       axilClk         : in  sl;
@@ -35,15 +34,26 @@ entity Application is
       axilWriteMaster : in  AxiLiteWriteMasterType;
       axilWriteSlave  : out AxiLiteWriteSlaveType;
       axilReadMaster  : in  AxiLiteReadMasterType;
-      axilReadSlave   : out AxiLiteReadSlaveType);
+      axilReadSlave   : out AxiLiteReadSlaveType;
+      -- Lcd signals
+      dataLCD_io  : inout slv(7 downto 0);                                                           
+      busy_o      : out sl;                       
+      RW_o        : out sl;                      
+      RS_o        : out sl;                   
+      E_o         : out sl;                     
+      btnStart_i  : in sl;
+      useBtnStart : in sl;
+      led_o       : out slv(11 downto 0)
+   );
+      
 end Application;
 
 architecture mapping of Application is
 
-   constant LCD_INDEX_C       : natural := 0;
-   constant REGISTERS_INDEX_C    : natural := 1;
+   constant LCD_INDEX_C        : natural := 0;
+   constant REGISTERS_INDEX_C  : natural := 1;
    constant NUM_AXIL_MASTERS_C : natural := 2;
-
+   
    constant AXIL_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUM_AXIL_MASTERS_C-1 downto 0) := genAxiLiteConfig(NUM_AXIL_MASTERS_C, AXIL_BASE_ADDR_G, 28, 24);
 
    signal axilReadMasters  : AxiLiteReadMasterArray(NUM_AXIL_MASTERS_C-1 downto 0);
@@ -51,7 +61,8 @@ architecture mapping of Application is
    signal axilWriteMasters : AxiLiteWriteMasterArray(NUM_AXIL_MASTERS_C-1 downto 0);
    signal axilWriteSlaves  : AxiLiteWriteSlaveArray(NUM_AXIL_MASTERS_C-1 downto 0) := (others => AXI_LITE_WRITE_SLAVE_EMPTY_DECERR_C);
 
-
+   signal userReadMaster : AxiLiteReadMasterType;
+   signal userReadSlave  : AxiLiteReadSlaveType;
 
 begin
 
@@ -60,7 +71,8 @@ begin
          TPD_G              => TPD_G,
          NUM_SLAVE_SLOTS_G  => 1,
          NUM_MASTER_SLOTS_G => NUM_AXIL_MASTERS_C,
-         MASTERS_CONFIG_G   => AXIL_CONFIG_C)
+         MASTERS_CONFIG_G   => AXIL_CONFIG_C
+      )
       port map (
          axiClk              => axilClk,
          axiClkRst           => axilRst,
@@ -72,25 +84,56 @@ begin
          mAxiWriteSlaves     => axilWriteSlaves,
          mAxiReadMasters     => axilReadMasters,
          mAxiReadSlaves      => axilReadSlaves
-         );
+      );
+         
+   U_Registers : entity work.RegisterUnit
+      generic map(
+         TPD_G => TPD_G
+      )
+      port map(
+         --! Clock and reset
+         axilClk => axilClk,
+         axilRst => axilRst,
+         
+         axilWriteMaster => axilWriteMasters(REGISTERS_INDEX_C),
+         axilWriteSlave  => axilWriteSlaves(REGISTERS_INDEX_C),
+         axilReadMaster  => axilReadMasters(REGISTERS_INDEX_C),
+         axilReadSlave   => axilReadSlaves(REGISTERS_INDEX_C),         
+
+         --! Lcd read channel
+         userReadMaster => userReadMaster,
+         userReadSlave  => userReadSlave
+      );   
          
    U_LCD : entity work.LcdDriverTop
       generic map(
          TPD_G => TPD_G
       )
       port map(
+
+         --! Clock and reset
          clk_i => axilClk,
          rst_i => axilRst,
-         busyLCD => busyLCDsig,
-         dataLCD_o => LCD_io,
-         data_i => data,
-         busy_o => busy_o,
-         dAdress_o => dataAdress,
-         RW_o => RW,
-         RS_o => RS_o,
-         E_o => E_o,
-         start_i => start_i,
-         led_o => led_o
+         
+         axilClk => axilClk,
+         axilRst => axilRst,         
+         axilWriteMaster => axilWriteMasters(LCD_INDEX_C),
+         axilWriteSlave  => axilWriteSlaves(LCD_INDEX_C),
+         axilReadMaster  => axilReadMasters(LCD_INDEX_C),
+         axilReadSlave   => axilReadSlaves(LCD_INDEX_C),         
+
+         --! Lcd read channel
+         lcdReadMaster => userReadMaster,
+         lcdReadSlave  => userReadSlave,
+
+         --! Lcd signals
+         useBtnStart => useBtnStart,
+         btnStart_i  => btnStart_i,
+         busy_o      => busy_o,
+         RW_o        => RW_o,
+         RS_o        => RS_o,
+         E_o         => E_o,
+         led_o       => led_o
       );   
 
 end mapping;

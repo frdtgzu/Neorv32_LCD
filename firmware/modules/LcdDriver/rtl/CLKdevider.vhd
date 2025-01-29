@@ -7,7 +7,7 @@
 -- Project Name: LCD_Driver
 -- Target Devices: arty a7-100T
 -- Tool Versions: vivado 2023.1
--- Description: ÇLKdevider 100MHz -> 1Mhz
+-- Description: ï¿½LKdevider 100MHz -> 1Mhz
 -- 
 -- Dependencies: 
 -- 
@@ -24,7 +24,7 @@ use IEEE.STD_LOGIC_UNSIGNED.ALL;
 
 entity CLKdevider is
    Generic (
-      TPROP : time := 1ns
+      TPD_G : time := 1ns
    );
 
    Port ( clk_i : in STD_LOGIC;
@@ -43,14 +43,14 @@ begin
 
    if(rising_edge(clk_i)) then
       if(clkUScount = "110001") then
-         clkUScount <= "000000" after TPROP;
+         clkUScount <= "000000" after TPD_G;
 		 if(clk = '0') then
-		    clk <= '1' after TPROP;
+		    clk <= '1' after TPD_G;
 		 else
-		    clk <= '0' after TPROP;
+		    clk <= '0' after TPD_G;
 		 end if;
       else
-         clkUScount <= std_logic_vector(unsigned(clkUScount) + 1) after TPROP;
+         clkUScount <= std_logic_vector(unsigned(clkUScount) + 1) after TPD_G;
       end if;
    end if;
 
