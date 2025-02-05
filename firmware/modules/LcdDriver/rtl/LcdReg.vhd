@@ -29,7 +29,7 @@ entity LcdReg is
    );
    port (
       --! Lcd signals
-      lcdStat         : out LcdStatType;
+      lcdCtrl         : out LcdCtrlType;
       -- AXI-Lite Bus
       axilClk         : in  sl;
       axilRst         : in  sl;
@@ -45,13 +45,13 @@ architecture behavioral of LcdReg is
    type RegType is record
       axilReadSlave  : AxiLiteReadSlaveType;
       axilWriteSlave : AxiLiteWriteSlaveType;
-      lcdStat        : LcdStatType;
+      lcdCtrl        : LcdCtrlType;
    end record RegType;
 
    constant REG_INIT_C : RegType := (
       axilReadSlave  => AXI_LITE_READ_SLAVE_INIT_C,
       axilWriteSlave => AXI_LITE_WRITE_SLAVE_INIT_C,
-      lcdStat        => LCD_STAT_INIT_C
+      lcdCtrl        => LCD_CTRL_INIT_C
       );
 
    signal r   : RegType := REG_INIT_C;
@@ -77,7 +77,7 @@ begin
       -------------------------------
       -- Mapping read/write registers
       -------------------------------
-      axiSlaveRegister(axilEp, x"000", 0, v.lcdStat.start);
+      axiSlaveRegister(axilEp, x"000", 0, v.lcdCtrl.start);
 
       ---------------------------
       -- Closeout the transaction
@@ -89,7 +89,7 @@ begin
       ----------
       axilReadSlave  <= r.axilReadSlave;
       axilWriteSlave <= r.axilWriteSlave;
-
+      lcdCtrl        <= r.lcdCtrl;
       --------------------
       -- Synchronous Reset
       --------------------

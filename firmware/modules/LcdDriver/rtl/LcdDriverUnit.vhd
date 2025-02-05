@@ -11,7 +11,7 @@ use surf.AxiLitePkg.all;
 
 use work.LcdPkg.all;
 
-entity LCDDriverTop is
+entity LcdDriverUnit is
    Generic(
       TPD_G      : time := 1ns
    );
@@ -24,13 +24,14 @@ entity LCDDriverTop is
       axilReadMaster  : in  AxiLiteReadMasterType;
       axilReadSlave   : out AxiLiteReadSlaveType;
       
-      --! Clk and rst
-      clk_i      : in sl;     
+      --! rst  
       rst_i      : in sl;   
  
       --! Lcd read channel
       lcdReadMaster  : out AxiLiteReadMasterType;
       lcdReadSlave   : in  AxiLiteReadSlaveType;
+      lcdClk         : in sl;
+      lcdRst         : in sl;
 
       --! Lcd Ctrl Signal  
       useBtnStart : in sl;
@@ -45,23 +46,34 @@ entity LCDDriverTop is
       led_o      : out   slv(11 downto 0)
    );
 
-end LCDDriverTop;
+end LcdDriverUnit;
 
-architecture structure of LCDDriverTop is
+architecture structure of LcdDriverUnit is
 
-   signal clock      : sl;
-   signal data       : slv(7 downto 0);
-   signal dataAdress : slv(4 downto 0);
    signal rst        : sl;
    signal LCD_io     : slv(7 downto 0);
    signal busyLCDsig : sl;
    signal RW         : sl;
+   signal LcdCtrl    : LcdCtrlType := LCD_CTRL_INIT_C;
    signal start      : sl;
-   signal LcdStat    : LcdStatType := LCD_STAT_INIT_C;
+   signal startSync  : sl;
+   
    
 begin
 
-   start <= btnStart_i when (useBtnStart = '1') else lcdStat.start;
+   start <= btnStart_i when (useBtnStart = '1') else lcdCtrl.start;
+   
+   U_Sync : entity surf.Synchronizer
+      generic map(
+         TPD_G       => TPD_G,
+         RST_ASYNC_G => true
+      )
+      port map(
+         clk     => lcdClk,
+         rst     => lcdRst,
+         dataIn  => start,
+         dataOut => startSync
+      );
    
    U_LcdReg : entity work.LcdReg
       generic map(
@@ -74,7 +86,7 @@ begin
          axilWriteSlave  => axilWriteSlave,
          axilReadMaster  => axilReadMaster,
          axilReadSlave   => axilReadSlave,  
-         lcdStat         => lcdStat    
+         LcdCtrl         => LcdCtrl    
       );
 
    U_LcdDriver: entity work.LcdDriverMain
@@ -82,27 +94,25 @@ begin
          TPD_G => TPD_G
       )
       port map(
-         clk_i     => clock,
-         rst_i     => rst,
+         --! Clock and reset
+         clk_i     => lcdClk,
+         rst_i     => rst_i,
+
+         --! Lcd I/O
          busyLCD   => busyLCDsig,
          dataLCD_o => LCD_io,
-         data_i    => data,
          busy_o    => busy_o,
-         dAdress_o => dataAdress,
          RW_o      => RW,
          RS_o      => RS_o,
          E_o       => E_o,
-         start_i   => start,
-         led_o     => led_o
-      );
+         start_i   => startSync,
 
-   U_Clkdevider: entity work.CLKdevider
-      generic map(
-         TPD_G => TPD_G
-      )
-      port map(
-         clk_i => clk_i,
-         clk_o => clock
+         --! Axi-read
+         lcdReadMaster => lcdReadMaster,
+         lcdReadSlave  => lcdReadSlave,
+
+         --! Status LED's
+         led_o     => led_o
       );
 
    U_BuffIO : entity work.BuffIO
@@ -114,6 +124,5 @@ begin
       );
 
    RW_o <= RW;
- 
 
 end structure;

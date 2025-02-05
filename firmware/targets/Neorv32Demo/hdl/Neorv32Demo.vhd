@@ -17,11 +17,11 @@ entity Neorv32Demo is
 
       --! Lcd IO   
       dataLCD_io  : inout std_logic_vector(7 downto 0);  
-      busy_o      : out std_logic;                       
       RW_o        : out std_logic;                      
       RS_o        : out std_logic;                        
       E_o         : out std_logic;                       
-      btnStart_i  : in std_logic;                         
+      btnStart_i  : in std_logic; 
+      useBtnStart : in std_logic;                        
       led_o       : out std_logic_vector(11 downto 0);    
       gpio_o      : out std_logic;
 
@@ -33,6 +33,8 @@ end Neorv32Demo;
 
 architecture top_level of Neorv32Demo is
 
+
+   signal lcdClk          : sl;
    signal axilClk         : sl;
    signal axilRst         : sl;
    signal axilWriteMaster : AxiLiteWriteMasterType;
@@ -41,11 +43,13 @@ architecture top_level of Neorv32Demo is
    signal axilReadSlave   : AxiLiteReadSlaveType;
    
    signal gpo : slv(7 downto 0) := (others => '0');
+   signal gpi : slv(7 downto 0) := (others => '0');
+   signal busy : sl;
 
 begin
-
+   
    gpio_o <= gpo(0);
-
+   gpi(0) <= busy;
    ------------------------------
    -- User's AXI-Lite Clock/Reset
    ------------------------------
@@ -71,6 +75,15 @@ begin
          -- Reset Outputs
          rstOut(0) => axilRst
          );
+         
+   U_Clkdevider: entity work.CLKdevider
+      generic map(
+         TPD_G => TPD_G
+      )
+      port map(
+         clk_i => axilClk,
+         clk_o => lcdClk
+      );
 
    -----------------------
    -- Common Platform Core
@@ -83,6 +96,7 @@ begin
       port map (
          -- Neorv32 interface ports
          gpio_o      => gpo,
+         gpio_i      => gpi,
          uart0_rxd_i => uart0_rxd_i,
          uart0_txd_o => uart0_txd_o,
 
@@ -114,12 +128,14 @@ begin
          axilReadSlave   => axilReadSlave,
 
          --! Lcd signals
+         dataLCD_io  => dataLCD_io,
+         lcdClk      => lcdClk,
          useBtnStart => useBtnStart,
-         busy_o      => busy_o,
-         RW_o        => RW,
+         busy_o      => busy,
+         RW_o        => RW_o,
          RS_o        => RS_o,
          E_o         => E_o,
-         start_i     => btnStart_i,
+         btnStart_i  => btnStart_i,
          led_o       => led_o
 
       );

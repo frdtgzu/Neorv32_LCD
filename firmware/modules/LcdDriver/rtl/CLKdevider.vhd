@@ -7,7 +7,7 @@
 -- Project Name: LCD_Driver
 -- Target Devices: arty a7-100T
 -- Tool Versions: vivado 2023.1
--- Description: �LKdevider 100MHz -> 1Mhz
+-- Description: ÇLKdevider 100MHz -> 1Mhz
 -- 
 -- Dependencies: 
 -- 
@@ -34,7 +34,7 @@ end CLKdevider;
 architecture Behavioral of CLKdevider is
 
    signal clkUScount : std_logic_vector(5 downto 0);
-   signal clk : std_logic;
+   signal clk : STD_LOGIC:= '0';
 begin
 
 process(clk_i)
@@ -59,3 +59,4 @@ end process;
 clk_o <= clk;
 
 end Behavioral;
+

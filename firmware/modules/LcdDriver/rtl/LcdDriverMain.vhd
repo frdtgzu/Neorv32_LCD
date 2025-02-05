@@ -32,16 +32,20 @@ entity LcdDriverMain is
       TPD_G: time := 1ns
    );
    Port(
-      rst_i     : in  sl;                --! reset
-      busyLCD   : in  sl;                --! podatki na LCD data vodilu najvisja linija nosi 
-                                         --! informacije o LCDbusy flag-u, mora biti tipa inout
-      dataLCD_o : out slv(7 downto 0);   
-      data_i    : in  slv(7 downto 0);   --! podatki iz registrov
-      clk_i     : in  sl;                --! 1MHz ura
-      busy_o    : out sl;                --! kontrolni signal -> kdaj driver lahko zapise nove podatke na LCD: 0->pripravljen, 1->ne
-      dAdress_o : out slv(4 downto 0);   --! naslovni prostor za pomnilnik, iz kjer beremo podatke
+
+      --! Clock and reset
+      clk_i     : in  sl;
+      rst_i     : in  sl;
+
+      --! Axi Read channel
+      lcdReadMaster : out AxiLiteReadMasterType;
+      lcdReadSlave  : in  AxiLiteReadSlaveType;      
+
+      busyLCD   : in  sl;                --! LCD busy signal
+      dataLCD_o : out slv(7 downto 0);   --! Data for LCD
+      busy_o    : out sl;                --! Driver busy signal
       RW_o      : out sl;                --! r/w za LCD -- 0 pisanje na LCD, 1 branje iz LCD
-      RS_o      : out sl;                --! register select 0-> instruction 1-> data
+      RS_o      : out sl;                --! register select 0-> instruction, 1-> data
       E_o       : out sl;                --! write enable za lcd (1->read,fallign_edge 0 -> write)
       start_i   : in  sl;                --! signalni bit za zacetek izpisa
       led_o     : out slv(11 downto 0)   --! testni signali za dolocitev stanja            
@@ -94,50 +98,53 @@ architecture Behavioral of LcdDriverMain is
     );
 
    type stateType is (
-       STARTWAIT_S,
-       SETFUNCT_S,
-       FUNCTWAIT_S,
-       SETDISPLAY_S,
-       DISPLAYWAIT_S,
-       DISPLAYCLEAR_S,
-       CLEARWAIT_S,
+       START_WAIT_S,
+       SET_FUNCT_S,
+       FUNCT_WAIT_S,
+       SET_DISPLAY_S,
+       DISPLAY_WAIT_S,
+       DISPLAY_CLEAR_S,
+       CLEAR_WAIT_S,
        IDLE_S,
        CLEAR_S,
-       GETDATA_S,
-       SENDDATA_S,
-       SETADDR_S
+       SET_DATA_ADDR_S,
+       GET_DATA_S,
+       SEND_DATA_S,
+       SET_ADDR_S
    );
 
    type recordType is record
-      count : std_logic_vector(14 downto 0);
-      s1 : std_logic;
-      s2 : std_logic;
-      state : stateType;
-      data: std_logic_vector(7 downto 0);
-      RW: std_logic;
-      RS: std_logic;
-      enable: std_logic;
-      busy: std_logic;
-      LCDbusy: std_logic;
-      index: std_logic_vector(4 downto 0);
-      dataLoad: std_logic_vector(7 downto 0);
-      nextState: std_logic;
+      count     : slv(14 downto 0);
+      s1        : sl;
+      s2        : sl;
+      state     : stateType;
+      data      : slv(7 downto 0);
+      RW        : sl;
+      RS        : sl;
+      enable    : sl;
+      busy      : sl;
+      LCDbusy   : sl;
+      index     : slv(4 downto 0);
+      dataLoad  : slv(7 downto 0);
+      nextState : sl;
+      lcdReadMaster : AxiLiteReadMasterType;
    end record recordType;
    
    constant RECORDTYPE_INIT_c : recordType := (
-      count  => (others => '0'),
-      s1     => '0',
-      s2     => '0',
-      state  => STARTWAIT_S,
-      data   => (others => '0'),
-      RW     => '0',
-      RS     => '0',
-      enable => '1',
-      busy   => '1',
-      index  => (others => '0'),
+      count     => (others => '0'),
+      s1        => '0',
+      s2        => '0',
+      state     => START_WAIT_S,
+      data      => (others => '0'),
+      RW        => '0',
+      RS        => '0',
+      enable    => '1',
+      busy      => '1',
+      index     => (others => '0'),
       nextState => '0',
       LCDbusy   => '0',     
-      dataLoad  => (others => '0')
+      dataLoad  => (others => '0'),
+      lcdReadMaster => AXI_LITE_READ_MASTER_INIT_C
    );
 
 --!   Synchronous input into registers
@@ -153,11 +160,10 @@ architecture Behavioral of LcdDriverMain is
 
 begin
 
-p_asinh: process(all)
+p_asinh: process(r, lcdReadSlave, rst_i, busyLCD, start_i, led)
       variable v : recordType;
 begin 
-   
-   
+
    -- Default asignment
    v := r;
    
@@ -172,68 +178,73 @@ begin
    
    --! Reset led
    led <= (others => '0');
-      
+
+   --! Axi-lite reset
+   if(r.lcdReadMaster.arvalid = '1' or r.lcdReadMaster.rready = '1') then
+      v.lcdReadMaster := AXI_LITE_READ_MASTER_INIT_C;
+   end if;
+
    if(r.state /= IDLE_S) then
       if(r.count < "111111111111111") then -- overflow protection
-         v.count := std_logic_vector(unsigned(r.count) + 1);   
+         v.count := slv(unsigned(r.count) + 1);   
       end if;
    end if;
    
    case r.state is 
 ----------------------------------------------------------------------------        
-      when STARTWAIT_S =>
+      when START_WAIT_S =>
          led(0) <= '1';      
          if(r.count = "100111000100000") then
-            v.state := SETFUNCT_S;
+            v.state := SET_FUNCT_S;
             v.count := (others => '0');
             v.busy := '1';
          end if;
 ----------------------------------------------------------------------------              
-      when SETFUNCT_S =>
+      when SET_FUNCT_S =>
          led(1) <= '1';     
          v.data := FUNCTION_SET_C;
          v.RS := '0';
          if(r.count(0) = '1') then
             v.enable := '0';
-            v.state := FUNCTWAIT_S;
+            v.state := FUNCT_WAIT_S;
             v.count := (others => '0');
          end if;
  ----------------------------------------------------------------------------          
-      when FUNCTWAIT_S =>
+      when FUNCT_WAIT_S =>
          led(2) <= '1';
          if(r.count = "000000000100101") then
-            v.state := SETDISPLAY_S;
+            v.state := SET_DISPLAY_S;
             v.count := (others => '0');
          end if;
 ----------------------------------------------------------------------------           
-      when SETDISPLAY_S =>
+      when SET_DISPLAY_S =>
          led(3) <= '1';
          v.data := DISPLAY_SET_C;
          v.RS := '0';
          if(r.count(0) = '1') then
             v.enable := '0';
-            v.state := DISPLAYWAIT_S;
+            v.state := DISPLAY_WAIT_S;
             v.count := (others => '0');
          end if;      
  ----------------------------------------------------------------------------          
-      when DISPLAYWAIT_S =>
+      when DISPLAY_WAIT_S =>
          led(4) <= '1';
          if(r.count = "000000000100101") then
-            v.state := DISPLAYCLEAR_S;
+            v.state := DISPLAY_CLEAR_S;
             v.count := (others => '0');
          end if;     
  ----------------------------------------------------------------------------          
-      when DISPLAYCLEAR_S =>
+      when DISPLAY_CLEAR_S =>
          led(5) <= '1';
          v.data := DISPLAY_CLEAT_C;
          v.RS := '0';
          if(r.count(0) = '1') then
             v.enable := '0';
-            v.state := CLEARWAIT_S;
+            v.state := CLEAR_WAIT_S;
             v.count := (others => '0');
          end if;      
  ----------------------------------------------------------------------------               
-      when CLEARWAIT_S =>
+      when CLEAR_WAIT_S =>
          led(6) <= '1';
          if(r.count = "000000000100101") then
             v.state := IDLE_S;
@@ -267,13 +278,13 @@ begin
             v.RW := '0';
          end if;            
          if(r.nextState = '1') then
-            v.state := SETADDR_S;
+            v.state := SET_ADDR_S;
             v.nextState := '0';
             v.RW := '1';        
 
          end if;
 ----------------------------------------------------------------------------           
-      when SETADDR_S =>
+      when SET_ADDR_S =>
          led(9) <= '1';
          v.RW := '1';      
          if(r.LCDbusy = '0' and r.RW = '1') then
@@ -288,20 +299,29 @@ begin
          end if;                         
          if(r.nextState = '1') then
             v.nextState := '0';
-            v.state := GETDATA_S; 
+            v.state := GET_DATA_S; 
             v.RW := '1';                           
          end if;
 ----------------------------------------------------------------------------           
-      when GETDATA_S =>
+      when SET_DATA_ADDR_S =>
          led(10) <= '1';
-         dAdress_o <= r.index;
-         if(r.RW = '0') then 
-            v.dataLoad := data_i;
-            v.state := SENDDATA_S;
+         v.lcdReadMaster.araddr(4 downto 0) := r.index;
+         v.lcdReadMaster.arvalid := '1';
+         if (lcdReadSlave.arready = '1') then
+            v.state := GET_DATA_S;
+         end if; 
+       
+----------------------------------------------------------------------------           
+      when GET_DATA_S =>
+         led(10) <= '1';
+         v.lcdReadMaster.rready := '1';
+         if(lcdReadSlave.rvalid = '1') then
+            v.dataLoad := lcdReadSlave.rdata(7 downto 0);
+            v.state := SEND_DATA_S;
             v.RW := '1';            
          end if;
  ----------------------------------------------------------------------------          
-      when SENDDATA_S=>
+      when SEND_DATA_S=>
          led(11) <= '1';
          v.RW := '1';      
          if(r.LCDbusy = '0' and r.RW = '1') then
@@ -316,7 +336,7 @@ begin
          end if;      
          if(r.nextState = '1') then
             v.nextState := '0';
-            v.state := SETADDR_S; 
+            v.state := SET_ADDR_S; 
             v.RW := '1';   
             if(unsigned(r.index) >= 31) then
                v.state := IDLE_S;
@@ -341,6 +361,8 @@ begin
       E_o <= r.enable;     
       busy_o <= r.busy;
       
+      lcdReadMaster <= v.lcdReadMaster;
+
       dataLCD_o  <= r.data(7 downto 0);
       led_o <= led;
       -- 

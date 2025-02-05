@@ -36,6 +36,7 @@ entity Application is
       axilReadMaster  : in  AxiLiteReadMasterType;
       axilReadSlave   : out AxiLiteReadSlaveType;
       -- Lcd signals
+      lcdClk      : in sl;
       dataLCD_io  : inout slv(7 downto 0);                                                           
       busy_o      : out sl;                       
       RW_o        : out sl;                      
@@ -61,8 +62,8 @@ architecture mapping of Application is
    signal axilWriteMasters : AxiLiteWriteMasterArray(NUM_AXIL_MASTERS_C-1 downto 0);
    signal axilWriteSlaves  : AxiLiteWriteSlaveArray(NUM_AXIL_MASTERS_C-1 downto 0) := (others => AXI_LITE_WRITE_SLAVE_EMPTY_DECERR_C);
 
-   signal userReadMaster : AxiLiteReadMasterType;
-   signal userReadSlave  : AxiLiteReadSlaveType;
+   signal lcdReadMaster : AxiLiteReadMasterType;
+   signal lcdReadSlave  : AxiLiteReadSlaveType;
 
 begin
 
@@ -101,18 +102,19 @@ begin
          axilReadSlave   => axilReadSlaves(REGISTERS_INDEX_C),         
 
          --! Lcd read channel
-         userReadMaster => userReadMaster,
-         userReadSlave  => userReadSlave
+         lcdReadMaster => lcdReadMaster,
+         lcdReadSlave  => lcdReadSlave,
+         lcdClk        => lcdClk,
+         lcdRst        => axilRst       
       );   
          
-   U_LCD : entity work.LcdDriverTop
+   U_LCD : entity work.LcdDriverUnit
       generic map(
          TPD_G => TPD_G
       )
       port map(
 
-         --! Clock and reset
-         clk_i => axilClk,
+         --! Reset
          rst_i => axilRst,
          
          axilClk => axilClk,
@@ -123,10 +125,13 @@ begin
          axilReadSlave   => axilReadSlaves(LCD_INDEX_C),         
 
          --! Lcd read channel
-         lcdReadMaster => userReadMaster,
-         lcdReadSlave  => userReadSlave,
+         lcdReadMaster => lcdReadMaster,
+         lcdReadSlave  => lcdReadSlave,
+         lcdClk        => lcdClk,
+         lcdRst        => axilRst,
 
          --! Lcd signals
+         dataLCD_io  => dataLCD_io,
          useBtnStart => useBtnStart,
          btnStart_i  => btnStart_i,
          busy_o      => busy_o,
