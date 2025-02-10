@@ -34,7 +34,7 @@
 /**@}*/
 
 // Global variables
-const uint32_t lcdAddr = 0x90000000;
+const uint32_t lcdAddr = 0x91000000;
 
 // Prototypes
 void read_memory(uint32_t address);
@@ -270,9 +270,8 @@ void lcd_write(void) {
     }
   }
   // Trigger rising edge on LCD
-  neorv32_gpio_pin_set(1, 0);
-  neorv32_gpio_pin_set(1, 1);
-
+  neorv32_cpu_store_unsigned_byte(0x90000000, 0);
+  neorv32_cpu_store_unsigned_byte(0x90000000, 1);
 }
 
 

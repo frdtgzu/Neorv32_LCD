@@ -107,8 +107,7 @@ architecture Behavioral of LcdDriverMain is
        CLEAR_WAIT_S,
        IDLE_S,
        CLEAR_S,
-       SET_DATA_ADDR_S,
-       GET_DATA_S,
+       SET_DATA_S,
        SEND_DATA_S,
        SET_ADDR_S
    );
@@ -299,28 +298,21 @@ begin
          end if;                         
          if(r.nextState = '1') then
             v.nextState := '0';
-            v.state := GET_DATA_S; 
+            v.state := SET_DATA_S; 
             v.RW := '1';                           
          end if;
 ----------------------------------------------------------------------------           
-      when SET_DATA_ADDR_S =>
+      when SET_DATA_S =>
          led(10) <= '1';
          v.lcdReadMaster.araddr(4 downto 0) := r.index;
          v.lcdReadMaster.arvalid := '1';
-         if (lcdReadSlave.arready = '1') then
-            v.state := GET_DATA_S;
+         v.lcdReadMaster.rready := '1';         
+         if (lcdReadSlave.rvalid = '1') then
+            v.state := SEND_DATA_S;
+            v.dataLoad := lcdReadSlave.rdata(7 downto 0);
+            v.RW := '1';                  
          end if; 
        
-----------------------------------------------------------------------------           
-      when GET_DATA_S =>
-         led(10) <= '1';
-         led(11) <= '1';
-         v.lcdReadMaster.rready := '1';
-         if(lcdReadSlave.rvalid = '1') then
-            v.dataLoad := lcdReadSlave.rdata(7 downto 0);
-            v.state := SEND_DATA_S;
-            v.RW := '1';            
-         end if;
  ----------------------------------------------------------------------------          
       when SEND_DATA_S=>
          led(11) <= '1';
