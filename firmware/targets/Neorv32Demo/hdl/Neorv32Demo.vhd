@@ -100,7 +100,7 @@ begin
          uart0_rxd_i => uart0_rxd_i,
          uart0_txd_o => uart0_txd_o,
 
-         -- Application AXI-Lite Interfaces [0x80000000:0xFFFFFFFF]
+         -- Application AXI-Lite Interfaces [0x90000000:0x9FFF_FFFF]
          clk_i             => axilClk,
          rst_i             => axilRst,
          axilReadMaster_o  => axilReadMaster,
@@ -116,7 +116,7 @@ begin
    U_App : entity work.Application
       generic map (
          TPD_G => TPD_G,
-         AXIL_BASE_ADDR_G => X"8000_0000"
+         AXIL_BASE_ADDR_G => X"9000_0000"
       )
       port map (
          -- AXI-Lite Interface (axilClk domain)

@@ -103,6 +103,7 @@ begin
          m00_axi_0_awprot(2 downto 0)  => ramWriteMaster.awprot(2 downto 0),
          m00_axi_0_awvalid(0)          => ramWriteMaster.awvalid,
          m00_axi_0_awready(0)          => ramWriteSlave.awready,
+         
          m00_axi_0_wdata(31 downto 0)  => ramWriteMaster.wdata(31 downto 0),
          m00_axi_0_wstrb(3 downto 0)   => ramWriteMaster.wstrb(3 downto 0),
          m00_axi_0_wvalid(0)           => ramWriteMaster.wvalid,
@@ -110,6 +111,7 @@ begin
          m00_axi_0_bresp(1 downto 0)   => ramWriteSlave.bresp(1 downto 0),
          m00_axi_0_bvalid(0)           => ramWriteSlave.bvalid,
          m00_axi_0_bready(0)           => ramWriteMaster.bready,
+         
          m00_axi_0_araddr(31 downto 0) => ramReadMaster.araddr(31 downto 0),
          m00_axi_0_arprot(2 downto 0)  => ramReadMaster.arprot(2 downto 0),
          m00_axi_0_arvalid(0)          => ramReadMaster.arvalid,

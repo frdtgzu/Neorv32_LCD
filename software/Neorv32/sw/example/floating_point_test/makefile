@@ -31,7 +31,3 @@ NEORV32_HOME ?= ../../..
 
 # Include the main NEORV32 makefile
 include $(NEORV32_HOME)/sw/common/common.mk
-
-# Use c++ compiler and define c++ standard
-override CC = $(RISCV_PREFIX)g++
-USER_FLAGS += -std=c++11

@@ -314,6 +314,7 @@ begin
 ----------------------------------------------------------------------------           
       when GET_DATA_S =>
          led(10) <= '1';
+         led(11) <= '1';
          v.lcdReadMaster.rready := '1';
          if(lcdReadSlave.rvalid = '1') then
             v.dataLoad := lcdReadSlave.rdata(7 downto 0);
