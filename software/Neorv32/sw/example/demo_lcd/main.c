@@ -156,26 +156,12 @@ int main() {
  **************************************************************************/
 void read_memory(uint32_t address) {
 
-  if (access_size == 0) {
-    neorv32_uart0_printf("Configure data size using 'setup' first.\n");
-    return;
-  }
-
   // perform read access
-  neorv32_uart0_printf("[0x%x] => ", address);
-
-  neorv32_cpu_csr_write(CSR_MCAUSE, 0);
 
   uint8_t mem_data_b = 0;
-  mem_data_b = (uint32_t)neorv32_cpu_load_unsigned_byte(address);
-
-  // show memory content if there was no exception
-  if (neorv32_cpu_csr_read(CSR_MCAUSE) == 0) {
-    neorv32_uart0_printf("0x");
-    aux_print_hex_byte(mem_data_b);
-  }
-
-  neorv32_uart0_printf("\n");
+  mem_data_b = neorv32_cpu_load_unsigned_byte(address);
+  
+  neorv32_uart0_printf("[0x%x] => %u\n", address, mem_data_b);
 }
 
 
@@ -184,31 +170,12 @@ void read_memory(uint32_t address) {
  **************************************************************************/
 void write_memory(uint32_t address, uint32_t data) {
 
-  if (access_size == 0) {
-    neorv32_uart0_printf("Configure data size using 'setup' first.\n");
-    return;
-  }
-
-  neorv32_uart0_printf("[0x%x] <= 0x", address);
-  aux_print_hex_byte((uint8_t)data);
+  neorv32_uart0_printf("[0x%x] <= 0x%u", address, (uint8_t)data);
 
   // perform write access
   neorv32_cpu_store_unsigned_byte(address, (uint8_t)data); 
 
   neorv32_uart0_printf("\n");
-}
-
-/**********************************************************************//**
- * Print HEX byte.
- *
- * @param[in] byte Byte to be printed as 2-char hex value.
- **************************************************************************/
-void aux_print_hex_byte(uint8_t byte) {
-
-  static const char symbols[] = "0123456789abcdef";
-
-  neorv32_uart0_putc(symbols[(byte >> 4) & 0x0f]);
-  neorv32_uart0_putc(symbols[(byte >> 0) & 0x0f]);
 }
 
 /**********************************************************************//**
@@ -218,29 +185,30 @@ void lcd_write(void) {
   uint8_t busy = 0;
   uint8_t mode = 0;
   uint8_t length = 0;
-  uint32_t temp[17];  
-  uint32_t lcd_data[33] = "                                ";
+  char temp[17];  
+  char lcd_data[33] = "                                ";
 
   // Clean the LCD data
   for(int i = 0; i < 32; i++) {
-    neorv32_cpu_store_unsigned_byte(lcdAddr + i, lcd_data[i]);
+    neorv32_cpu_store_unsigned_byte(lcdAddr + i, (uint8_t)lcd_data[i]);
   }
 
   // Select write mode
   neorv32_uart0_printf("Enter write mode (0 - both lines, 1 - one line at a time): ");
   while(1) {
     mode = neorv32_uart0_getc();
-    neorv32_uart0_printf("\n");    
+   
     if (mode == '0' || mode == '1') {
       break;
     }
     else {
+      neorv32_uart0_printf("\n");       
       neorv32_uart0_printf("Invalid mode. Enter 0 or 1: ");
     }
   }
-  
+  neorv32_uart0_printf("%c", mode);
   // LCD Busy indicator
-  while (neorv32_gpio_pin_get == 1) {
+  while (neorv32_gpio_pin_get(0) == 1) {
     if (busy == 0) {
       neorv32_uart0_printf("LCD is busy. Please wait.\n");
       busy = 1;
@@ -250,28 +218,33 @@ void lcd_write(void) {
 
   // Write to LCD
   if (mode == '0') {
-    length = neorv32_uart0_scan(buffer, 33, 1);
+    neorv32_uart0_printf("\n");
+    neorv32_uart0_printf("Enter data: ");
+    length = neorv32_uart0_scan(lcd_data, 33, 1);
     for(int i = 0; i < length; i++) {
-      neorv32_cpu_store_unsigned_byte(lcdAddr + i, lcd_data[i]);      
+      neorv32_cpu_store_unsigned_byte(lcdAddr + i, (uint8_t)lcd_data[i]);      
     } 
   }
   else {
     neorv32_uart0_printf("\n");
     neorv32_uart0_printf("Enter data for first line: ");
-    length = neorv32_uart0_scan(buffer, 17, 1);
+    length = neorv32_uart0_scan(temp, 17, 1);
     for(int i = 0; i < length; i++) {
-      neorv32_cpu_store_unsigned_byte(lcdAddr + i, lcd_data[i]);      
+      neorv32_cpu_store_unsigned_byte(lcdAddr + i, (uint8_t)temp[i]);      
     } 
     neorv32_uart0_printf("\n");
     neorv32_uart0_printf("Enter data for second line: ");
-    length = neorv32_uart0_scan(buffer, 17, 1);
+    length = neorv32_uart0_scan(temp, 17, 1);
     for(int i = 0; i < length; i++) {
-      neorv32_cpu_store_unsigned_byte(lcdAddr + 16 + i, lcd_data[i]);      
+      neorv32_cpu_store_unsigned_byte(lcdAddr + 16 + i, (uint8_t)temp[i]);      
     }
   }
   // Trigger rising edge on LCD
+    neorv32_uart0_printf("\n");
   neorv32_cpu_store_unsigned_byte(0x90000000, 0);
+  neorv32_uart0_printf("Writing data\n"); 
   neorv32_cpu_store_unsigned_byte(0x90000000, 1);
+  neorv32_uart0_printf("Data written\n");  
 }
 
 
@@ -281,10 +254,10 @@ void lcd_write(void) {
 
 void lcd_read(void) {
 
-  uint32_t lcd_data[33];
+  char lcd_data[33];
 
   for (int i = 0; i < 32; i++) {
-    lcd_data[i] = neorv32_cpu_load_unsigned_byte(lcdAddr + i);
+    lcd_data[i] = (char)neorv32_cpu_load_unsigned_byte(lcdAddr + i);
   }
   
   neorv32_uart0_printf("LCD data: ");
