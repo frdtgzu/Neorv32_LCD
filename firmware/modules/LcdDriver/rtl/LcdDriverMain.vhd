@@ -309,7 +309,16 @@ begin
          v.lcdReadMaster.rready := '1';         
          if (lcdReadSlave.rvalid = '1') then
             v.state := SEND_DATA_S;
-            v.dataLoad := lcdReadSlave.rdata(7 downto 0);
+            case r.index(1 downto 0) is 
+               when "00" =>
+                  v.dataLoad := lcdReadSlave.rdata(7 downto 0);
+               when "01" =>
+                  v.dataLoad := lcdReadSlave.rdata(15 downto 8);
+               when "10" =>
+                  v.dataLoad := lcdReadSlave.rdata(23 downto 16);
+               when "11" =>
+                  v.dataLoad := lcdReadSlave.rdata(31 downto 24);                  
+            end case;
             v.RW := '1';                  
          end if; 
        
