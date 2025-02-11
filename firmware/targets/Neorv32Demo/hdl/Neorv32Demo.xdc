@@ -10,7 +10,7 @@
 ## Clock signal
 set_property -dict { PACKAGE_PIN E3    IOSTANDARD LVCMOS33 } [get_ports { clk_i }]; #IO_L12P_T1_MRCC_35 Sch=gclk[100]
 create_clock -add -name sys_clk -period 10.00 -waveform {0 5} [get_ports { clk_i }];
-create_generated_clock -name mhz_clk -source [get_ports clk_i] -divide_by 100 [get_nets  { lcdClk }];
+create_generated_clock -name mhz_clk -source [get_ports clk_i] -divide_by 250 [get_nets  { lcdClk }];
 
 set_clock_groups -asynchronous -group [get_clocks -of_objects [get_pins U_axilClk/PllGen.U_Pll/CLKOUT0]] -group [get_clocks mhz_clk]
 

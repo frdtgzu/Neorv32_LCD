@@ -33,7 +33,7 @@ end CLKdevider;
 
 architecture Behavioral of CLKdevider is
 
-   signal clkUScount : std_logic_vector(5 downto 0);
+   signal clkUScount : std_logic_vector(7 downto 0);
    signal clk : STD_LOGIC:= '0';
 begin
 
@@ -42,8 +42,8 @@ process(clk_i)
 begin
 
    if(rising_edge(clk_i)) then
-      if(clkUScount = "110001") then
-         clkUScount <= "000000" after TPD_G;
+      if(clkUScount = "11111001") then
+         clkUScount <= "00000000" after TPD_G;
 		 if(clk = '0') then
 		    clk <= '1' after TPD_G;
 		 else

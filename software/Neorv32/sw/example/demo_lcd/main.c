@@ -190,7 +190,12 @@ void lcd_write(void) {
 
   // Clean the LCD data
   for(int i = 0; i < 32; i++) {
-    neorv32_cpu_store_unsigned_byte(lcdAddr + i, (uint8_t)lcd_data[i]);
+    if (i < 16) {
+      neorv32_cpu_store_unsigned_byte(lcdAddr + i, (uint8_t)lcd_data[i]);
+    }
+    else {
+      neorv32_cpu_store_unsigned_byte(lcdAddr + i + 24, (uint8_t)lcd_data[i]);
+    }
   }
 
   // Select write mode
@@ -222,7 +227,13 @@ void lcd_write(void) {
     neorv32_uart0_printf("Enter data: ");
     length = neorv32_uart0_scan(lcd_data, 33, 1);
     for(int i = 0; i < length; i++) {
-      neorv32_cpu_store_unsigned_byte(lcdAddr + i, (uint8_t)lcd_data[i]);      
+      if (i < 16) {
+        neorv32_cpu_store_unsigned_byte(lcdAddr + i, (uint8_t)lcd_data[i]);     
+      }
+      else {
+        neorv32_cpu_store_unsigned_byte(lcdAddr + i + 24, (uint8_t)lcd_data[i]);
+      }
+         
     } 
   }
   else {
@@ -236,7 +247,7 @@ void lcd_write(void) {
     neorv32_uart0_printf("Enter data for second line: ");
     length = neorv32_uart0_scan(temp, 17, 1);
     for(int i = 0; i < length; i++) {
-      neorv32_cpu_store_unsigned_byte(lcdAddr + 16 + i, (uint8_t)temp[i]);      
+      neorv32_cpu_store_unsigned_byte(lcdAddr + 40 + i, (uint8_t)temp[i]);      
     }
   }
   // Trigger rising edge on LCD
@@ -257,7 +268,11 @@ void lcd_read(void) {
   char lcd_data[33];
 
   for (int i = 0; i < 32; i++) {
-    lcd_data[i] = (char)neorv32_cpu_load_unsigned_byte(lcdAddr + i);
+    if(i < 16) {
+      lcd_data[i] = (char)neorv32_cpu_load_unsigned_byte(lcdAddr + i);
+    }
+    else
+      lcd_data[i] = (char)neorv32_cpu_load_unsigned_byte(lcdAddr + i + 24);
   }
   
   neorv32_uart0_printf("LCD data: ");

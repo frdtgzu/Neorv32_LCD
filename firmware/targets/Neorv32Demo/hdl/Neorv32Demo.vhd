@@ -35,6 +35,7 @@ architecture top_level of Neorv32Demo is
 
 
    signal lcdClk          : sl;
+   signal lcdRst          : sl;
    signal axilClk         : sl;
    signal axilRst         : sl;
    signal axilWriteMaster : AxiLiteWriteMasterType;

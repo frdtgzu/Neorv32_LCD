@@ -60,43 +60,6 @@ architecture Behavioral of LcdDriverMain is
     constant DISPLAY_SET_C   :  slv(7 downto 0)  := X"0C";  --! Display set komanda za LCD display inicializacijo
     constant DISPLAY_CLEAT_C :  slv(7 downto 0)  := X"01";  --! Display clear komanda pred pisanjem na LCD
 
-    type LCD_ADDR_T is array(31 downto 0) of std_logic_vector(7 downto 0);
-
-    constant LCD_ADDR : LCD_ADDR_T:= (
-        0=> X"80",
-        1=> X"81",
-        2=> X"82",
-        3=> X"83",
-        4=> X"84",
-        5=> X"85",
-        6=> X"86",
-        7=> X"87",
-        8=> X"88",
-        9=> X"89",
-        10=> X"8A",
-        11=> X"8B",
-        12=> X"8C",
-        13=> X"8D",
-        14=> X"8E",
-        15=> X"8F",
-        16=> X"C0",
-        17=> X"C1",
-        18=> X"C2",
-        19=> X"C3",
-        20=> X"C4",
-        21=> X"C5",
-        22=> X"C6",
-        23=> X"C7",
-        24=> X"C8",
-        25=> X"C9",
-        26=> X"CA",
-        27=> X"CB",
-        28=> X"CC",
-        29=> X"CD",
-        30=> X"CE",
-        31=> X"CF"
-    );
-
    type stateType is (
        START_WAIT_S,
        SET_FUNCT_S,
@@ -123,7 +86,7 @@ architecture Behavioral of LcdDriverMain is
       enable    : sl;
       busy      : sl;
       LCDbusy   : sl;
-      index     : slv(4 downto 0);
+      index     : slv(6 downto 0);
       dataLoad  : slv(7 downto 0);
       nextState : sl;
       lcdReadMaster : AxiLiteReadMasterType;
@@ -193,7 +156,7 @@ begin
 ----------------------------------------------------------------------------        
       when START_WAIT_S =>
          led(0) <= '1';      
-         if(r.count = "100111000100000") then
+         if(r.count = "000111110100000") then
             v.state := SET_FUNCT_S;
             v.count := (others => '0');
             v.busy := '1';
@@ -211,7 +174,7 @@ begin
  ----------------------------------------------------------------------------          
       when FUNCT_WAIT_S =>
          led(2) <= '1';
-         if(r.count = "000000000100101") then
+         if(r.count = "000000000001000") then
             v.state := SET_DISPLAY_S;
             v.count := (others => '0');
          end if;
@@ -228,7 +191,7 @@ begin
  ----------------------------------------------------------------------------          
       when DISPLAY_WAIT_S =>
          led(4) <= '1';
-         if(r.count = "000000000100101") then
+         if(r.count = "000000000001000") then
             v.state := DISPLAY_CLEAR_S;
             v.count := (others => '0');
          end if;     
@@ -245,7 +208,7 @@ begin
  ----------------------------------------------------------------------------               
       when CLEAR_WAIT_S =>
          led(6) <= '1';
-         if(r.count = "000000000100101") then
+         if(r.count = "000000100110000") then
             v.state := IDLE_S;
             v.count := (others => '0');
          end if;
@@ -289,7 +252,10 @@ begin
          if(r.LCDbusy = '0' and r.RW = '1') then
             v.RW := '0';
             v.RS := '0';
-            v.data := LCD_ADDR(TO_INTEGER(unsigned(r.index)));
+            v.data := slv(X"80" + unsigned(r.index(5 downto 0)));
+            if(unsigned(r.index) >= 40) then
+               v.data := slv(X"C0" + unsigned(r.index(5 downto 0)) - 40);
+            end if;
          end if;
          if(r.RW = '0') then
             v.enable := '0';
@@ -304,7 +270,7 @@ begin
 ----------------------------------------------------------------------------           
       when SET_DATA_S =>
          led(10) <= '1';
-         v.lcdReadMaster.araddr(4 downto 0) := r.index;
+         v.lcdReadMaster.araddr(6 downto 0) := r.index;
          v.lcdReadMaster.arvalid := '1';
          v.lcdReadMaster.rready := '1';         
          if (lcdReadSlave.rvalid = '1') then
@@ -338,9 +304,9 @@ begin
          end if;      
          if(r.nextState = '1') then
             v.nextState := '0';
-            v.state := SET_ADDR_S; 
+            v.state := SET_DATA_S; 
             v.RW := '1';   
-            if(unsigned(r.index) >= 31) then
+            if(unsigned(r.index) >= 79) then
                v.state := IDLE_S;
             else 
                v.index := std_logic_vector(unsigned(r.index) + 1); 
