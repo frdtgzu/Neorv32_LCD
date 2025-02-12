@@ -21,10 +21,14 @@ entity Neorv32Demo is
       RS_o        : out std_logic;                        
       E_o         : out std_logic;                       
       btnStart_i  : in std_logic; 
-      useBtnStart : in std_logic;                        
-      led_o       : out std_logic_vector(11 downto 0);    
-      gpio_o      : out std_logic;
+      useBtnStart_i : in std_logic; 
 
+                                   
+      led_o       : out std_logic_vector(11 downto 0);         
+      ledbtn      : out std_logic;
+      ledsw       : out std_logic;
+      gpio_o      : out std_logic;
+      
       --! Uart
       uart0_rxd_i : in std_logic;
       uart0_txd_o : out std_logic  
@@ -42,14 +46,19 @@ architecture top_level of Neorv32Demo is
    signal axilWriteSlave  : AxiLiteWriteSlaveType;
    signal axilReadMaster  : AxiLiteReadMasterType;
    signal axilReadSlave   : AxiLiteReadSlaveType;
-   
+   signal btnStartSync    : sl := '0';
+   signal useBtnStartSync : sl := '0';
    signal gpo : slv(7 downto 0) := (others => '0');
    signal gpi : slv(7 downto 0) := (others => '0');
    signal busy : sl;
 
 begin
    
+   ledbtn <= btnStartSync;
+   ledsw  <= useBtnStartSync;
    gpio_o <= gpo(0);
+   gpi(2) <= btnStartSync;
+   gpi(1) <= useBtnStartSync;
    gpi(0) <= busy;
    ------------------------------
    -- User's AXI-Lite Clock/Reset
@@ -85,6 +94,34 @@ begin
          clk_i => axilClk,
          clk_o => lcdClk
       );
+   
+   U_DebounceSyncBtn: entity surf.Debouncer
+      generic map(
+         INPUT_POLARITY_G  => '1',
+         OUTPUT_POLARITY_G => '1',
+         CLK_FREQ_G        => 100.00E+6,
+         SYNCHRONIZE_G     => true 
+      )
+      port map(
+         clk => axilClk,
+         rst => axilRst,
+         i   => btnStart_i,
+         o   => btnStartSync
+      ); 
+
+   U_DebounceSyncSw: entity surf.Debouncer
+      generic map(
+         INPUT_POLARITY_G  => '1',
+         OUTPUT_POLARITY_G => '1',
+         CLK_FREQ_G        => 100.00E+6,
+         SYNCHRONIZE_G     => true 
+      )
+      port map(
+         clk => axilClk,
+         rst => axilRst,
+         i   => useBtnStart_i,
+         o   => useBtnStartSync
+      );    
 
    -----------------------
    -- Common Platform Core
@@ -131,12 +168,12 @@ begin
          --! Lcd signals
          dataLCD_io  => dataLCD_io,
          lcdClk      => lcdClk,
-         useBtnStart => useBtnStart,
+         --useBtnStart => useBtnStart,
          busy_o      => busy,
          RW_o        => RW_o,
          RS_o        => RS_o,
          E_o         => E_o,
-         btnStart_i  => btnStart_i,
+         --btnStart_i  => btnStart_i,
          led_o       => led_o
 
       );

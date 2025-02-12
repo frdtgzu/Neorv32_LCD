@@ -34,7 +34,7 @@ entity LcdDriverUnit is
       lcdRst         : in sl;
 
       --! Lcd Ctrl Signal  
-      useBtnStart : in sl;
+      --useBtnStart : in sl;
 
       --! Lcd I/O
       dataLCD_io : inout slv(7 downto 0);       
@@ -42,7 +42,7 @@ entity LcdDriverUnit is
       RW_o       : out   sl;                
       RS_o       : out   sl;                 
       E_o        : out   sl;                 
-      btnStart_i : in    sl;                 
+      --btnStart_i : in    sl;                 
       led_o      : out   slv(11 downto 0)
    );
 
@@ -61,7 +61,7 @@ architecture structure of LcdDriverUnit is
    
 begin
 
-   start <= btnStart_i when (useBtnStart = '1') else lcdCtrl.start;
+   start <= lcdCtrl.start;
    
    U_Sync : entity surf.Synchronizer
       generic map(

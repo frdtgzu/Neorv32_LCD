@@ -42,8 +42,8 @@ entity Application is
       RW_o        : out sl;                      
       RS_o        : out sl;                   
       E_o         : out sl;                     
-      btnStart_i  : in sl;
-      useBtnStart : in sl;
+      --btnStart_i  : in sl;
+      --useBtnStart : in sl;
       led_o       : out slv(11 downto 0)
    );
       
@@ -132,8 +132,8 @@ begin
 
          --! Lcd signals
          dataLCD_io  => dataLCD_io,
-         useBtnStart => useBtnStart,
-         btnStart_i  => btnStart_i,
+         --useBtnStart => useBtnStart,
+         --btnStart_i  => btnStart_i,
          busy_o      => busy_o,
          RW_o        => RW_o,
          RS_o        => RS_o,

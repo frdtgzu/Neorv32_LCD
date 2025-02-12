@@ -45,6 +45,38 @@ void lcd_read(void);
 
 
 /**********************************************************************//**
+ * GPIO input pin(s) interrupt handler.
+ **************************************************************************/
+void gpio_interrupt_handler(void) {
+
+  // get bit mask of all those input pin that caused this interrupt
+  uint32_t active = neorv32_gpio_irq_get();
+
+  // clear the active pins that we are "handling" here
+  neorv32_gpio_irq_clr(active);
+
+  // "handle" the individual pin interrupts:
+  // we just print the pin number of the triggering inputs
+  int i;
+  neorv32_uart0_printf("\nGPIO interrupt from pin(s): ");
+  for (i=0; i<32; i++) {
+    if (active & 1) {
+      neorv32_uart0_printf("%u ", i);
+    }
+    active = active >> 1;
+  }
+  neorv32_uart0_printf("\n");
+
+  neorv32_cpu_store_unsigned_byte(0x90000000, 0);
+  neorv32_uart0_printf("Writing data to LCD\n"); 
+  neorv32_cpu_store_unsigned_byte(0x90000000, 1);
+  neorv32_uart0_printf("Data written\n");  
+
+}
+
+
+
+/**********************************************************************//**
  * This program provides an interactive console to read/write memory.
  *
  * @note This program requires the UART to be synthesized.
@@ -71,8 +103,16 @@ int main() {
   // capture all exceptions and give debug info via UART
   neorv32_rte_setup();
 
-  // disable all interrupt sources
-  neorv32_cpu_csr_write(CSR_MIE, 0);
+  // configure CPU's GPIO controller interrupt
+  neorv32_rte_handler_install(GPIO_RTE_ID, gpio_interrupt_handler); // install GPIO trap handler
+  neorv32_cpu_csr_set(CSR_MIE, 1 << GPIO_FIRQ_ENABLE); // enable GPIO FIRQ channel
+  neorv32_cpu_csr_set(CSR_MSTATUS, 1 << CSR_MSTATUS_MIE); // enable machine-mode interrupts
+
+  // configure GPIO input's IRQ trigger
+  neorv32_gpio_irq_setup(2, GPIO_TRIG_EDGE_RISING); // this pin's interrupt fires on a rising edge
+
+  // enable wanted GPIO input pin interrupt 
+  neorv32_gpio_irq_enable(0x00000004);  // enable interrupt on pin gpi(2)
 
   // setup UART at default baud rate, no interrupts
   neorv32_uart0_setup(BAUD_RATE, 0);
@@ -187,7 +227,6 @@ void lcd_write(void) {
   uint8_t length = 0;
   char temp[17];  
   char lcd_data[33] = "                                ";
-
   // Clean the LCD data
   for(int i = 0; i < 32; i++) {
     if (i < 16) {
@@ -215,6 +254,7 @@ void lcd_write(void) {
   // LCD Busy indicator
   while (neorv32_gpio_pin_get(0) == 1) {
     if (busy == 0) {
+      neorv32_uart0_printf("\n"); 
       neorv32_uart0_printf("LCD is busy. Please wait.\n");
       busy = 1;
     }
@@ -250,12 +290,18 @@ void lcd_write(void) {
       neorv32_cpu_store_unsigned_byte(lcdAddr + 40 + i, (uint8_t)temp[i]);      
     }
   }
-  // Trigger rising edge on LCD
+  if (neorv32_gpio_pin_get(1) == 0) {
+    // Trigger rising edge on LCD
     neorv32_uart0_printf("\n");
-  neorv32_cpu_store_unsigned_byte(0x90000000, 0);
-  neorv32_uart0_printf("Writing data\n"); 
-  neorv32_cpu_store_unsigned_byte(0x90000000, 1);
-  neorv32_uart0_printf("Data written\n");  
+    neorv32_cpu_store_unsigned_byte(0x90000000, 0);
+    neorv32_uart0_printf("Writing data to LCD\n"); 
+    neorv32_cpu_store_unsigned_byte(0x90000000, 1);
+    neorv32_uart0_printf("Data written\n");  
+  }
+  else {
+    neorv32_uart0_printf("\n");    
+    neorv32_uart0_printf("Waiting for intterupt to send data\n");
+  }
 }
 
 

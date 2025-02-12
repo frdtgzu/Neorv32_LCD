@@ -58,7 +58,7 @@ architecture Behavioral of LcdDriverMain is
 
     constant FUNCTION_SET_C  :  slv(7 downto 0)  := X"3C";  --! Function set komanda za LCD bus inicializacijo (set_function state)
     constant DISPLAY_SET_C   :  slv(7 downto 0)  := X"0C";  --! Display set komanda za LCD display inicializacijo
-    constant DISPLAY_CLEAT_C :  slv(7 downto 0)  := X"01";  --! Display clear komanda pred pisanjem na LCD
+    constant DISPLAY_CLEAR_C :  slv(7 downto 0)  := X"01";  --! Display clear komanda pred pisanjem na LCD
 
    type stateType is (
        START_WAIT_S,
@@ -198,7 +198,7 @@ begin
  ----------------------------------------------------------------------------          
       when DISPLAY_CLEAR_S =>
          led(5) <= '1';
-         v.data := DISPLAY_CLEAT_C;
+         v.data := DISPLAY_CLEAR_C;
          v.RS := '0';
          if(r.count(0) = '1') then
             v.enable := '0';
@@ -232,7 +232,7 @@ begin
          if(r.LCDbusy = '0' and r.RW = '1') then
             v.RW := '0';
             v.RS := '0';
-            v.data := DISPLAY_CLEAT_C;
+            v.data := DISPLAY_CLEAR_C;
          end if;
          if(r.RW = '0') then
             v.enable := '0';
@@ -252,10 +252,7 @@ begin
          if(r.LCDbusy = '0' and r.RW = '1') then
             v.RW := '0';
             v.RS := '0';
-            v.data := slv(X"80" + unsigned(r.index(5 downto 0)));
-            if(unsigned(r.index) >= 40) then
-               v.data := slv(X"C0" + unsigned(r.index(5 downto 0)) - 40);
-            end if;
+            v.data := X"80";
          end if;
          if(r.RW = '0') then
             v.enable := '0';
