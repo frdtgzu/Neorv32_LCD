@@ -16,7 +16,6 @@
 *.so
 *.pyc
 *.bin
-*.ld
 *.dat
 *.htm
 
